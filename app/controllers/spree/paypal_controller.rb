@@ -1,5 +1,7 @@
 module Spree
   class PaypalController < StoreController
+    ssl_allowed
+
     def express
       items = current_order.line_items.map do |item|
         {
