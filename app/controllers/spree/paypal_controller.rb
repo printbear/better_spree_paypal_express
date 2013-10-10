@@ -160,7 +160,7 @@ module Spree
     end
 
     def completion_route(order)
-      order_path(order, :token => order.token)
+      order_path(order, :token => order.token, utm_nooverride: 1)
     end
 
     def address_required?
