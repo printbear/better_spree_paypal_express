@@ -74,12 +74,12 @@ module Spree
 
     def line_item(item)
       {
-          :Name => item.product.name,
+          :Name => "#{item.quantity} #{item.product.name}",
           :Number => item.variant.sku,
-          :Quantity => item.quantity,
+          :Quantity => 1,
           :Amount => {
               :currencyID => item.order.currency,
-              :value => item.price
+              :value => item.amount
           },
           :ItemCategory => "Physical"
       }
