@@ -52,14 +52,21 @@ module Spree
         :amount => order.total,
         :payment_method => payment_method
       }, :without_protection => true)
-      order.next
-      if order.complete?
-        flash.notice = Spree.t(:order_processed_successfully)
-        flash[:commerce_tracking] = "nothing special"
-        redirect_to completion_route(order)
+
+      if order.completed?
+        # Order is already completed. Adding an additional payment.
+        payment.process!
+        flash[:notice] = 'Payment successfully added'
       else
-        redirect_to checkout_state_path(order.state)
+        # Otherwise we should advance through the payment state.
+        order.next
+        if order.completed?
+          flash.notice = Spree.t(:order_processed_successfully)
+          flash[:commerce_tracking] = "nothing special"
+        end
       end
+
+      redirect_to_order(order.state)
     end
 
     def cancel
@@ -68,6 +75,13 @@ module Spree
     end
 
     private
+    def redirect_to_order state=:payment
+      if order.completed?
+        redirect_to completion_route
+      else
+        redirect_to checkout_state_path(state)
+      end
+    end
 
     def order
       @order ||= begin
