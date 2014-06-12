@@ -3,11 +3,10 @@ module Spree
     ssl_allowed
 
     def express
-      order = current_order || raise(ActiveRecord::RecordNotFound)
       items = order.line_items.map(&method(:line_item))
 
-      tax_adjustments = current_order.adjustments.tax
-      shipping_adjustments = current_order.adjustments.shipping
+      tax_adjustments = order.adjustments.tax
+      shipping_adjustments = order.adjustments.shipping
 
       order.adjustments.eligible.each do |adjustment|
         next if (tax_adjustments + shipping_adjustments).include?(adjustment)
@@ -45,8 +44,7 @@ module Spree
     end
 
     def confirm
-      order = current_order || raise(ActiveRecord::RecordNotFound)
-      order.payments.create!({
+      payment = order.payments.create!({
         :source => Spree::PaypalExpressCheckout.create({
           :token => params[:token],
           :payer_id => params[:PayerID]
@@ -66,11 +64,23 @@ module Spree
 
     def cancel
       flash[:notice] = Spree.t('flash.cancel', :scope => 'paypal')
-      order = current_order || raise(ActiveRecord::RecordNotFound)
       redirect_to checkout_state_path(order.state, paypal_cancel_token: params[:token])
     end
 
     private
+
+    def order
+      @order ||= begin
+        if order_id = params[:order_id]
+          # FIXME: auth
+          order = Order.find_by_number!(order_id)
+          authorize! :read, order
+          order
+        else
+          current_order || raise(ActiveRecord::RecordNotFound)
+        end
+      end
+    end
 
     def line_item(item)
       {
@@ -88,7 +98,7 @@ module Spree
     def express_checkout_request_details order, items
       { :SetExpressCheckoutRequestDetails => {
           :InvoiceID => order.number,
-          :ReturnURL => confirm_paypal_url(:payment_method_id => params[:payment_method_id], :utm_nooverride => 1),
+          :ReturnURL => confirm_paypal_url(:payment_method_id => params[:payment_method_id], :order_id => order.number, :utm_nooverride => 1),
           :CancelURL =>  cancel_paypal_url,
           :SolutionType => payment_method.preferred_solution.present? ? payment_method.preferred_solution : "Mark",
           :LandingPage => payment_method.preferred_landing_page.present? ? payment_method.preferred_landing_page : "Billing",
@@ -112,27 +122,27 @@ module Spree
         # This results in the order summary being simply "Current purchase"
         {
           :OrderTotal => {
-            :currencyID => current_order.currency,
-            :value => current_order.total
+            :currencyID => order.currency,
+            :value => order.total
           }
         }
       else
         {
           :OrderTotal => {
-            :currencyID => current_order.currency,
-            :value => current_order.total
+            :currencyID => order.currency,
+            :value => order.total
           },
           :ItemTotal => {
-            :currencyID => current_order.currency,
+            :currencyID => order.currency,
             :value => item_sum
           },
           :ShippingTotal => {
-            :currencyID => current_order.currency,
-            :value => current_order.ship_total
+            :currencyID => order.currency,
+            :value => order.ship_total
           },
           :TaxTotal => {
-            :currencyID => current_order.currency,
-            :value => current_order.tax_total
+            :currencyID => order.currency,
+            :value => order.tax_total
           },
           :ShipToAddress => address_options,
           :PaymentDetailsItem => items,
@@ -146,18 +156,18 @@ module Spree
       return {} unless address_required?
 
       {
-          :Name => current_order.bill_address.try(:full_name),
-          :Street1 => current_order.bill_address.address1,
-          :Street2 => current_order.bill_address.address2,
-          :CityName => current_order.bill_address.city,
-          # :phone => current_order.bill_address.phone,
-          :StateOrProvince => current_order.bill_address.state_text,
-          :Country => current_order.bill_address.country.iso,
-          :PostalCode => current_order.bill_address.zipcode
+          :Name => order.bill_address.try(:full_name),
+          :Street1 => order.bill_address.address1,
+          :Street2 => order.bill_address.address2,
+          :CityName => order.bill_address.city,
+          # :phone => order.bill_address.phone,
+          :StateOrProvince => order.bill_address.state_text,
+          :Country => order.bill_address.country.iso,
+          :PostalCode => order.bill_address.zipcode
       }
     end
 
-    def completion_route(order)
+    def completion_route
       order_path(order, :token => order.token)
     end
 
