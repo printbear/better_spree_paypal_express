@@ -20,6 +20,15 @@ module Spree
         }
       end
 
+      items << {
+        :Name => 'Existing Payment',
+        :Quantity => 1,
+        :Amount => {
+          :currencyID => order.currency,
+          :value => -existing_payment
+        }
+      }
+
       # Because PayPal doesn't accept $0 items at all.
       # See #10
       # https://cms.paypal.com/uk/cgi-bin/?cmd=_render-content&content_ID=developer/e_howto_api_ECCustomizing
@@ -52,7 +61,7 @@ module Spree
           :token => params[:token],
           :payer_id => params[:PayerID]
         }, :without_protection => true),
-        :amount => order.total,
+        :amount => total_amount,
         :payment_method => payment_method
       }, :without_protection => true)
 
@@ -133,6 +142,14 @@ module Spree
       payment_method.provider
     end
 
+    def existing_payment
+      order.authorized_payment_total
+    end
+
+    def total_amount
+      order.total - existing_payment
+    end
+
     def payment_details items
       item_sum = items.sum { |i| i[:Quantity] * i[:Amount][:value] }
       if item_sum.zero?
@@ -141,14 +158,14 @@ module Spree
         {
           :OrderTotal => {
             :currencyID => order.currency,
-            :value => order.total
+            :value => total_amount
           }
         }
       else
         {
           :OrderTotal => {
             :currencyID => order.currency,
-            :value => order.total
+            :value => total_amount
           },
           :ItemTotal => {
             :currencyID => order.currency,
