@@ -101,7 +101,7 @@ module Spree
 
     def line_item(item)
       {
-          :Name => "#{item.quantity} #{item.product.name}",
+          :Name => "#{item.quantity} #{item.name}",
           :Number => item.variant.sku,
           :Quantity => 1,
           :Amount => {
