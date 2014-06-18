@@ -2,6 +2,8 @@ module Spree
   class PaypalController < StoreController
     ssl_allowed
 
+    before_filter :check_authorization
+
     def express
       items = order.line_items.map(&method(:line_item))
 
@@ -98,14 +100,15 @@ module Spree
     def order
       @order ||= begin
         if order_id = params[:order_id]
-          # FIXME: auth
-          order = Order.find_by_number!(order_id)
-          authorize! :read, order
-          order
+          Order.find_by_number!(order_id)
         else
           current_order || raise(ActiveRecord::RecordNotFound)
         end
       end
+    end
+
+    def check_authorization
+      authorize! :read, order, session[:access_token]
     end
 
     def line_item(item)
