@@ -38,17 +38,22 @@ module Spree
     end
 
     def purchase(amount, express_checkout, gateway_options={})
-      pp_details_request = provider.build_get_express_checkout_details({
-        :Token => express_checkout.token
-      })
-      pp_details_response = provider.get_express_checkout_details(pp_details_request)
+      pp_details_response = get_express_checkout_details(express_checkout.token)
+      pp_payment_details = pp_details_response.get_express_checkout_details_response_details.PaymentDetails.first
 
       pp_request = provider.build_do_express_checkout_payment({
         :DoExpressCheckoutPaymentRequestDetails => {
           :PaymentAction => "Sale",
           :Token => express_checkout.token,
           :PayerID => express_checkout.payer_id,
-          :PaymentDetails => pp_details_response.get_express_checkout_details_response_details.PaymentDetails
+          :PaymentDetails => [{
+            :OrderTotal => {
+              :currencyID => pp_payment_details.OrderTotal.currencyID,
+              :value => amount
+            },
+            :NotifyURL => pp_payment_details.NotifyURL
+          }]
+
         }
       })
 
@@ -93,8 +98,13 @@ module Spree
       end
       refund_transaction_response
     end
+
+    private
+    def get_express_checkout_details(token)
+      pp_request = provider.build_get_express_checkout_details({
+        :Token => token
+      })
+      provider.get_express_checkout_details(pp_request)
+    end
   end
 end
-
-#   payment.state = 'completed'
-#   current_order.state = 'complete'
