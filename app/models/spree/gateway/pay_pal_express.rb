@@ -47,7 +47,7 @@ module Spree
         :AuthorizationID => express_checkout.authorization_id,
         :Amount => {
           :currencyID => pp_payment_details.OrderTotal.currencyID,
-          :value => payment.amount / 100.0
+          :value => payment.amount
         },
         :CompleteType => "Complete"
       })
@@ -73,11 +73,11 @@ module Spree
     end
 
     def authorize(amount, express_checkout, gateway_options = {})
-      do_express_checkout_payment(amount, express_checkout, gateway_options.merge({payment_action: "Authorization"}))
+      do_express_checkout_payment(amount, express_checkout, "Authorization")
     end
 
     def purchase(amount, express_checkout, gateway_options = {})
-      do_express_checkout_payment(amount, express_checkout, gateway_options.merge({payment_action: "Sale"}))
+      do_express_checkout_payment(amount, express_checkout, "Sale")
     end
 
     def refund(payment, amount)
@@ -109,13 +109,13 @@ module Spree
       provider.get_express_checkout_details(pp_request)
     end
 
-    def do_express_checkout_payment(amount, express_checkout, gateway_options = {})
+    def do_express_checkout_payment(amount, express_checkout, payment_action)
       pp_details_response = get_express_checkout_details(express_checkout.token)
       pp_payment_details = pp_details_response.get_express_checkout_details_response_details.PaymentDetails.first
 
       pp_request = provider.build_do_express_checkout_payment({
         :DoExpressCheckoutPaymentRequestDetails => {
-          :PaymentAction => gateway_options[:payment_action],
+          :PaymentAction => payment_action,
           :Token => express_checkout.token,
           :PayerID => express_checkout.payer_id,
           :PaymentDetails => [{

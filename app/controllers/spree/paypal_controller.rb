@@ -190,7 +190,7 @@ module Spree
     end
 
     def payment_action
-      payment_method.preferred_use_authorization ? "Authorization" : "Sale"
+      payment_method.auto_capture? ? "Authorization" : "Sale"
     end
 
     def address_options
