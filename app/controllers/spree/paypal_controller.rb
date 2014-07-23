@@ -155,7 +155,7 @@ module Spree
 
     def payment_details items
       item_sum = items.sum { |i| i[:Quantity] * i[:Amount][:value] }
-      if item_sum.zero?
+      if item_sum <= 0
         # Paypal does not support no items or a zero dollar ItemTotal
         # This results in the order summary being simply "Current purchase"
         {
