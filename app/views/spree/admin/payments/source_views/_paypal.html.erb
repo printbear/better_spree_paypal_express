@@ -12,6 +12,11 @@
 
         <dt><%= Spree.t(:transaction_id) %>:</dt>
         <dd><%= payment.source.transaction_id %></dd>
+
+        <% if payment.source.authorization_id %>
+          <dt><%= Spree.t(:authorization_id) %>:</dt>
+          <dd><%= payment.source.authorization_id %></dd>
+        <% end %>
       </dl>
     </div>
 
