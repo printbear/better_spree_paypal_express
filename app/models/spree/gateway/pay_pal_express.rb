@@ -8,9 +8,11 @@ module Spree
     preference :solution, :string, default: 'Mark'
     preference :landing_page, :string, default: 'Billing'
     preference :logourl, :string, default: ''
+    preference :use_authorization, :boolean, default: false
 
     attr_accessible :preferred_login, :preferred_password, :preferred_signature,
-                    :preferred_solution, :preferred_logourl, :preferred_landing_page
+                    :preferred_solution, :preferred_logourl, :preferred_landing_page,
+                    :preferred_use_authorization
 
     def supports?(source)
       true
@@ -30,40 +32,32 @@ module Spree
     end
 
     def auto_capture?
-      true
+      !preferred_use_authorization
     end
 
     def method_type
       'paypal'
     end
 
-    def purchase(amount, express_checkout, gateway_options={})
+    def capture(payment, express_checkout, gateway_options = {})
       pp_details_response = get_express_checkout_details(express_checkout.token)
       pp_payment_details = pp_details_response.get_express_checkout_details_response_details.PaymentDetails.first
 
-      pp_request = provider.build_do_express_checkout_payment({
-        :DoExpressCheckoutPaymentRequestDetails => {
-          :PaymentAction => "Sale",
-          :Token => express_checkout.token,
-          :PayerID => express_checkout.payer_id,
-          :PaymentDetails => [{
-            :OrderTotal => {
-              :currencyID => pp_payment_details.OrderTotal.currencyID,
-              :value => amount
-            },
-            :NotifyURL => pp_payment_details.NotifyURL
-          }]
-
-        }
+      pp_request = provider.build_do_capture({
+        :AuthorizationID => express_checkout.authorization_id,
+        :Amount => {
+          :currencyID => pp_payment_details.OrderTotal.currencyID,
+          :value => payment.amount
+        },
+        :CompleteType => "Complete"
       })
 
-      pp_response = provider.do_express_checkout_payment(pp_request)
+      pp_response = provider.do_capture(pp_request)
       if pp_response.success?
-        # We need to store the transaction id for the future.
-        # This is mainly so we can use it later on to refund the payment if the user wishes.
-        transaction_id = pp_response.do_express_checkout_payment_response_details.payment_info.first.transaction_id
+        # Store transaction ID so we can refund payment if need be.
+        transaction_id = pp_response.do_capture_response_details.payment_info.transaction_id
         express_checkout.update_column(:transaction_id, transaction_id)
-        # This is rather hackish, required for payment/processing handle_response code.
+
         Class.new do
           def success?; true; end
           def authorization; nil; end
@@ -76,6 +70,14 @@ module Spree
         end
         pp_response
       end
+    end
+
+    def authorize(amount, express_checkout, gateway_options = {})
+      do_express_checkout_payment(amount, express_checkout, "Authorization")
+    end
+
+    def purchase(amount, express_checkout, gateway_options = {})
+      do_express_checkout_payment(amount, express_checkout, "Sale")
     end
 
     def refund(payment, amount)
@@ -105,6 +107,54 @@ module Spree
         :Token => token
       })
       provider.get_express_checkout_details(pp_request)
+    end
+
+    def do_express_checkout_payment(amount, express_checkout, payment_action)
+      pp_details_response = get_express_checkout_details(express_checkout.token)
+      pp_payment_details = pp_details_response.get_express_checkout_details_response_details.PaymentDetails.first
+
+      pp_request = provider.build_do_express_checkout_payment({
+        :DoExpressCheckoutPaymentRequestDetails => {
+          :PaymentAction => payment_action,
+          :Token => express_checkout.token,
+          :PayerID => express_checkout.payer_id,
+          :PaymentDetails => [{
+            :OrderTotal => {
+              :currencyID => pp_payment_details.OrderTotal.currencyID,
+              :value => amount / 100.0
+            },
+            :NotifyURL => pp_payment_details.NotifyURL
+          }]
+
+        }
+      })
+
+      pp_response = provider.do_express_checkout_payment(pp_request)
+      if pp_response.success?
+        pp_response_details = pp_response.do_express_checkout_payment_response_details
+        transaction_id = pp_response_details.payment_info.first.transaction_id
+
+        if pp_response_details.payment_info.first.pending_reason == "authorization"
+          # Used authorization. Store transaction so that we can capture payment later.
+          express_checkout.update_column(:authorization_id, transaction_id)
+        else
+          # Payment is completed. Did not use authorization.
+          express_checkout.update_column(:transaction_id, transaction_id)
+        end
+
+        # This is rather hackish, required for payment/processing handle_response code.
+        Class.new do
+          def success?; true; end
+          def authorization; nil; end
+        end.new
+      else
+        class << pp_response
+          def to_s
+            errors.map(&:long_message).join(" ")
+          end
+        end
+        pp_response
+      end
     end
   end
 end

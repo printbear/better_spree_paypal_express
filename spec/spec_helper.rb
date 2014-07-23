@@ -44,6 +44,9 @@ require 'spree/testing_support/url_helpers'
 
 require 'spree_paypal_express/factories'
 
+# Don't log PayPal stuff.
+PayPal::SDK.logger = Rails.logger
+
 RSpec.configure do |config|
   config.include FactoryGirl::Syntax::Methods
   config.include Spree::TestingSupport::UrlHelpers
@@ -53,13 +56,15 @@ RSpec.configure do |config|
   config.color = true
   config.use_transactional_fixtures = false
 
+  config.infer_spec_type_from_file_location!
+
   config.before :suite do
     DatabaseCleaner.strategy = :transaction
     DatabaseCleaner.clean_with :truncation
   end
 
   config.before do
-    DatabaseCleaner.strategy = example.metadata[:js] ? :truncation : :transaction
+    DatabaseCleaner.strategy = RSpec.current_example.metadata[:js] ? :truncation : :transaction
     DatabaseCleaner.start
   end
 

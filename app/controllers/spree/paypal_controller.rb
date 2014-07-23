@@ -84,7 +84,6 @@ module Spree
     end
 
     def cancel
-      #flash[:notice] = Spree.t('flash.cancel', :scope => 'paypal')
       redirect_to checkout_state_path(order.state, paypal_cancel_token: params[:token])
     end
 
@@ -185,9 +184,13 @@ module Spree
           :ShipToAddress => address_options,
           :PaymentDetailsItem => items,
           :ShippingMethod => "Shipping Method Name Goes Here",
-          :PaymentAction => "Sale"
+          :PaymentAction => payment_action
         }
       end
+    end
+
+    def payment_action
+      payment_method.auto_capture? ? "Authorization" : "Sale"
     end
 
     def address_options
