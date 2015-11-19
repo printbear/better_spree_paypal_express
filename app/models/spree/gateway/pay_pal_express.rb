@@ -80,6 +80,12 @@ module Spree
       do_express_checkout_payment(amount, express_checkout, "Sale")
     end
 
+    def void(express_checkout)
+      pp_request = provider.build_do_void({:AuthorizationID => express_checkout.authorization_id})
+
+      provider.do_void(pp_request)
+    end
+
     def refund(payment, amount)
       refund_type = payment.amount == amount.to_f ? "Full" : "Partial"
       refund_transaction = provider.build_refund_transaction({
