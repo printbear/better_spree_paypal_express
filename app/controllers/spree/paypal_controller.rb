@@ -47,6 +47,8 @@ module Spree
         else
           message = pp_response.errors.map(&:long_message).join(" ")
           Bugsnag.notify(RuntimeError.new(message))
+          Rails.logger.info("[Paypal] Error")
+          Rails.logger.info(message)
           flash[:error] = Spree.t('flash.generic_error', :scope => 'paypal', :reasons => message)
           redirect_to checkout_state_path(:payment)
         end
