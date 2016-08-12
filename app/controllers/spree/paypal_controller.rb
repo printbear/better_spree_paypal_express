@@ -48,12 +48,12 @@ module Spree
           message = pp_response.errors.map(&:long_message).join(" ")
           Bugsnag.notify(RuntimeError.new(message))
           flash[:error] = Spree.t('flash.generic_error', :scope => 'paypal', :reasons => message)
-          redirect_to checkout_state_path(:payment)
+          redirect_to checkout_path
         end
       rescue SocketError => e
         Bugsnag.notify(e)
         flash[:error] = Spree.t('flash.connection_failed', :scope => 'paypal')
-        redirect_to checkout_state_path(:payment)
+        redirect_to checkout_path
       end
     end
 
@@ -84,7 +84,7 @@ module Spree
     end
 
     def cancel
-      redirect_to checkout_state_path(order.state, paypal_cancel_token: params[:token])
+      redirect_to checkout_path
     end
 
     private
@@ -92,7 +92,7 @@ module Spree
       if order.completed?
         redirect_to completion_route
       else
-        redirect_to checkout_state_path(state)
+        redirect_to checkout_path
       end
     end
 
