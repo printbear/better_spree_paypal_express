@@ -92,7 +92,7 @@ module Spree
       if order.completed?
         redirect_to completion_route
       else
-        redirect_to checkout_path
+        redirect_to complete_order_path
       end
     end
 
