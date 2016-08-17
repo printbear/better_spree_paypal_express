@@ -161,7 +161,8 @@ module Spree
           :OrderTotal => {
             :currencyID => order.currency,
             :value => total_amount
-          }
+          },
+          :PaymentAction => payment_action
         }
       else
         {
