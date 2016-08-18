@@ -48,12 +48,12 @@ module Spree
           message = pp_response.errors.map(&:long_message).join(" ")
           Bugsnag.notify(RuntimeError.new(message))
           flash[:error] = Spree.t('flash.generic_error', :scope => 'paypal', :reasons => message)
-          redirect_to checkout_path
+          redirect_to error_path
         end
       rescue SocketError => e
         Bugsnag.notify(e)
         flash[:error] = Spree.t('flash.connection_failed', :scope => 'paypal')
-        redirect_to checkout_path
+        redirect_to error_path
       end
     end
 
@@ -94,6 +94,10 @@ module Spree
       else
         redirect_to complete_order_path
       end
+    end
+
+    def error_path
+      checkout_path
     end
 
     def order
