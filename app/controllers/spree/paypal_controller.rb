@@ -46,7 +46,11 @@ module Spree
           redirect_to provider.express_checkout_url(pp_response, :useraction => 'commit')
         else
           message = pp_response.errors.map(&:long_message).join(" ")
-          Bugsnag.notify(RuntimeError.new(message))
+          if Rails.env.development?
+            Rails.logger.info("[Error][PayPal] #{message}")
+          else
+            Bugsnag.notify(RuntimeError.new(message))
+          end
           flash[:error] = Spree.t('flash.generic_error', :scope => 'paypal', :reasons => message)
           redirect_to error_path
         end
