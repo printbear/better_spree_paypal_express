@@ -51,7 +51,7 @@ module Spree
           else
             Bugsnag.notify(RuntimeError.new(message))
           end
-          flash[:error] = Spree.t('flash.generic_error', :scope => 'paypal', :reasons => message)
+          flash[:error] = Spree.t(:unprocessable_order)
           redirect_to error_path
         end
       rescue SocketError => e
