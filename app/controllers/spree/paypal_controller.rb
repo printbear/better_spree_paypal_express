@@ -136,9 +136,9 @@ module Spree
           :InvoiceID => order.number,
           :ReturnURL => confirm_paypal_url(:payment_method_id => params[:payment_method_id], :order_id => order.number, :utm_nooverride => 1),
           :CancelURL =>  cancel_paypal_url,
-          :SolutionType => payment_method.preferred_solution.present? ? payment_method.preferred_solution : "Mark",
-          :LandingPage => payment_method.preferred_landing_page.present? ? payment_method.preferred_landing_page : "Billing",
-          :cppheaderimage => payment_method.preferred_logourl.present? ? payment_method.preferred_logourl : "",
+          :SolutionType => payment_method.solution.present? ? payment_method.solution : "Mark",
+          :LandingPage => payment_method.landing_page.present? ? payment_method.landing_page : "Billing",
+          :cppheaderimage => payment_method.logourl.present? ? payment_method.logourl : "",
           :NoShipping => 1,
           :PaymentDetails => [payment_details(items)]
       }}
@@ -222,7 +222,7 @@ module Spree
     end
 
     def address_required?
-      payment_method.preferred_solution.eql?('Sole')
+      payment_method.solution.eql?('Sole')
     end
   end
 end

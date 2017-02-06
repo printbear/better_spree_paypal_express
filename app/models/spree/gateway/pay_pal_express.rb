@@ -1,18 +1,50 @@
 require 'paypal-sdk-merchant'
 module Spree
   class Gateway::PayPalExpress < Gateway
-    preference :login, :string
-    preference :password, :string
-    preference :signature, :string
-    preference :server, :string, default: 'sandbox'
-    preference :solution, :string, default: 'Mark'
-    preference :landing_page, :string, default: 'Billing'
-    preference :logourl, :string, default: ''
-    preference :use_authorization, :boolean, default: false
+    def login
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_LOGIN"]
+    end
 
-    attr_accessible :preferred_login, :preferred_password, :preferred_signature,
-                    :preferred_solution, :preferred_logourl, :preferred_landing_page,
-                    :preferred_use_authorization
+    def password
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_PASSWORD"]
+    end
+
+    def signature
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_SIGNATURE"]
+    end
+
+    def server
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_SERVER"]
+    end
+
+    def solution
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_SOLUTION"]
+    end
+
+    def landing_page
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_LANDING_PAGE"]
+    end
+
+    def logourl
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_LOGOURL"]
+    end
+
+    def use_authorization
+      ENV["#{business_entity_id.upcase}_PAYPAL_GATEWAY_USE_AUTHORIZATION"] == 'true'
+    end
+
+    def provider
+      ::PayPal::SDK.configure(
+        :mode      => server.present? ? server : "sandbox",
+        :username  => login,
+        :password  => password,
+        :signature => signature)
+      provider_class.new
+    end
+
+    def auto_capture?
+      !use_authorization
+    end
 
     def supports?(source)
       true
@@ -20,19 +52,6 @@ module Spree
 
     def provider_class
       ::PayPal::SDK::Merchant::API
-    end
-
-    def provider
-      ::PayPal::SDK.configure(
-        :mode      => preferred_server.present? ? preferred_server : "sandbox",
-        :username  => preferred_login,
-        :password  => preferred_password,
-        :signature => preferred_signature)
-      provider_class.new
-    end
-
-    def auto_capture?
-      !preferred_use_authorization
     end
 
     def method_type
