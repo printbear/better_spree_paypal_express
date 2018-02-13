@@ -77,10 +77,12 @@ module Spree
         flash[:notice] = 'Payment successfully added'
       else
         # Otherwise we should advance through the payment state.
-        order.next
+        while order.next; end
         if order.completed?
           flash.notice = Spree.t(:order_processed_successfully)
           flash[:commerce_tracking] = "nothing special"
+        else
+          Rails.logger.warn("Unable to complete order #{order.number}: #{order.errors.full_messages.join('; ')} (#{order.attributes.to_s})")
         end
       end
 
