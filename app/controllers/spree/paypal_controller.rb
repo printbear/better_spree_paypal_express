@@ -134,7 +134,7 @@ module Spree
     def express_checkout_request_details order, items
       { :SetExpressCheckoutRequestDetails => {
           :InvoiceID => order.number,
-          :ReturnURL => confirm_paypal_url(:payment_method_id => params[:payment_method_id], :order_id => order.number, :utm_nooverride => 1),
+          :ReturnURL => params.fetch(:return_url, confirm_paypal_url(:payment_method_id => params[:payment_method_id], :order_id => order.number, :utm_nooverride => 1)),
           :CancelURL =>  cancel_paypal_url,
           :SolutionType => payment_method.solution.present? ? payment_method.solution : "Mark",
           :LandingPage => payment_method.landing_page.present? ? payment_method.landing_page : "Billing",
