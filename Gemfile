@@ -6,8 +6,6 @@ gem 'sqlite3'
 gem 'pg'
 gem 'database_cleaner', '1.0.1'
 
-gem "bugsnag"
-
 group :test do
  gem 'simplecov-rcov'
  gem 'yarjuf'
