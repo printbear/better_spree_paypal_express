@@ -49,13 +49,13 @@ module Spree
           if Rails.env.development?
             Rails.logger.info("[Error][PayPal] #{message}")
           else
-            Bugsnag.notify(RuntimeError.new(message))
+            ErrorReporting.report RuntimeError.new(message)
           end
           flash[:error] = Spree.t(:unprocessable_order)
           redirect_to error_path
         end
       rescue SocketError => e
-        Bugsnag.notify(e)
+        ErrorReporting.report e
         flash[:error] = Spree.t('flash.connection_failed', :scope => 'paypal')
         redirect_to error_path
       end
