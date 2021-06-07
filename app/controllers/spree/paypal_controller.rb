@@ -157,7 +157,16 @@ module Spree
     end
 
     def total_amount
-      order.total - existing_payment
+      # Sometimes we might want to charge before updating the order.
+      # Currently this happens for shipment upgrade of orders that are currently in production.
+      # Updating the shipping method before receiving the money opens up room for exploits.
+      # Thus, this hack.
+      @total_amount ||= begin
+        pending_payment = order.paypal_pending_payment || 0
+        order.update_attribute(:paypal_pending_payment, 0)
+
+        order.total - existing_payment + pending_payment
+      end
     end
 
     def payment_details items
