@@ -2,13 +2,11 @@
 *~
 .#*
 .DS_Store
-.idea
-.project
-.sass-cache
 coverage
+results.xml
 Gemfile.lock
 tmp
-nbproject
 pkg
-*.swp
 spec/dummy
+.rvmrc
+.idea
