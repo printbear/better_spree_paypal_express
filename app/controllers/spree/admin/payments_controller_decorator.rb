@@ -6,12 +6,12 @@ Spree::Admin::PaymentsController.class_eval do
         redirect_to admin_order_payment_path(@order, @payment)
       end
     elsif request.post?
-      response = @payment.payment_method.refund(@payment, params[:refund_amount])
-      if response.success?
+      begin
+        @payment.refund!(params[:refund_amount].to_f)
         flash[:success] = Spree.t(:refund_successful, :scope => 'paypal')
         redirect_to admin_order_payments_path(@order)
-      else
-        flash.now[:error] = Spree.t(:refund_unsuccessful, :scope => 'paypal') + " (#{response.errors.first.long_message})"
+      rescue Core::GatewayError => e
+        flash.now[:error] = Spree.t(:refund_unsuccessful, :scope => 'paypal') + " (#{e})"
         render
       end
     end
