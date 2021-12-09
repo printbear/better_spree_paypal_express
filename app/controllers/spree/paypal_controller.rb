@@ -84,7 +84,18 @@ module Spree
         end
       end
 
-      redirect_to_order(order.state)
+      checkout_controller = Spree::CheckoutController.new.tap do |controller|
+        controller.env = env
+        controller.request = request
+        controller.response = response
+      end
+
+      checkout_controller.process(:complete)
+
+      # This is similar to what `redirect_to` does
+      self.status = checkout_controller.status
+      self.location = checkout_controller.location
+      self.response_body = checkout_controller.response_body
     end
 
     def cancel
