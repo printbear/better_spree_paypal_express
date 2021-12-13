@@ -90,7 +90,7 @@ module Spree
         controller.response = response
       end
 
-      checkout_controller.process(:complete)
+      checkout_controller.process(order.state)
 
       # This is similar to what `redirect_to` does
       self.status = checkout_controller.status
