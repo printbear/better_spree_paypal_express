@@ -3,6 +3,7 @@
 
   <div class="row">
     <div class="alpha six columns">
+      <p><%= link_to 'Open on PayPal',  "https://www.paypal.com/activity/payment/#{payment.source.transaction_id}" %></p>
       <dl>
         <dt><%= Spree.t(:payer_id, :scope => :paypal) %>:</dt>
         <dd><%= payment.source.payer_id %></dd>
