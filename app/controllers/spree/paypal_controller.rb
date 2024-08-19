@@ -62,44 +62,50 @@ module Spree
     end
 
     def confirm
-      payment = order.payments.create!({
-        :source => Spree::PaypalExpressCheckout.create({
-          :token => params[:token],
-          :payer_id => params[:PayerID]
-        }, :without_protection => true),
-        :amount => total_amount,
-        :payment_method => payment_method
-      }, :without_protection => true)
+      begin
+        payment = order.payments.create!({
+          :source => Spree::PaypalExpressCheckout.create({
+            :token => params[:token],
+            :payer_id => params[:PayerID]
+          }, :without_protection => true),
+          :amount => total_amount,
+          :payment_method => payment_method
+        }, :without_protection => true)
 
-      if order.completed?
-        # Order is already completed. Adding an additional payment.
-        payment.process!
-        flash[:notice] = 'Payment successfully added'
-      else
-        # Otherwise we should advance through the payment state.
-        order.next
         if order.completed?
-          flash.notice = Spree.t(:order_processed_successfully)
-          flash[:commerce_tracking] = "nothing special"
+          # Order is already completed. Adding an additional payment.
+          payment.process!
+          flash[:notice] = 'Payment successfully added'
+        else
+          # Otherwise we should advance through the payment state.
+          order.next
+          if order.completed?
+            flash.notice = Spree.t(:order_processed_successfully)
+            flash[:commerce_tracking] = "nothing special"
+          end
         end
+
+        checkout_controller = Spree::CheckoutController.new.tap do |controller|
+          controller.env = env
+          controller.request = request
+          controller.response = response
+        end
+
+        checkout_controller.process(:complete)
+
+        # This is similar to what `redirect_to` does
+        self.status = checkout_controller.status
+        self.location = checkout_controller.location
+        self.response_body = checkout_controller.response_body
+      rescue StandardError => e
+        Rails.logger.error("[Checkout Paypal] - Error processing checkout", order_number: order.number, error: e.inspect, backtrace: e.backtrace)
+        
+        self.location = checkout_controller.location
       end
-
-      checkout_controller = Spree::CheckoutController.new.tap do |controller|
-        controller.env = env
-        controller.request = request
-        controller.response = response
-      end
-
-      checkout_controller.process(:complete)
-
-      # This is similar to what `redirect_to` does
-      self.status = checkout_controller.status
-      self.location = checkout_controller.location
-      self.response_body = checkout_controller.response_body
     end
 
     def cancel
-      redirect_to checkout_path
+      redirect_to localized_path('/checkout')
     end
 
     private
@@ -112,7 +118,7 @@ module Spree
     end
 
     def error_path
-      checkout_path
+      localized_path('/checkout')
     end
 
     def order
